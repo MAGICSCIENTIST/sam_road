@@ -38,6 +38,12 @@ def cityscale_data_partition():
             indrange_test.append(x)
     return indrange_train, indrange_validation, indrange_test
 
+def mtp_data_partition(dataFolder):
+    filenames = os.listdir(dataFolder)
+    train_list=filenames
+    val_list=filenames
+    test_list=filenames
+    return train_list, val_list, test_list
 
 def spacenet_data_partition():
     # dataset partition
@@ -242,10 +248,12 @@ def test_graph_label_generator():
         gt_graph = pickle.load(open(f"./cityscale/20cities/region_166_refine_gt_graph.p",'rb'))
         coord_transform = lambda v : v[:, ::-1]
     elif dataset == 'spacenet':
-        rgb_path = 'spacenet/RGB_1.0_meter/AOI_2_Vegas_210__rgb.png'
+        # rgb_path = 'spacenet/RGB_1.0_meter/AOI_2_Vegas_210__rgb.png'
+        rgb_path = 'spacenet/RGB_1.0_meter/AOI_2_Vegas_5__rgb.png'
         # Load GT Graph
-        gt_graph = pickle.load(open(f"spacenet/RGB_1.0_meter/AOI_2_Vegas_210__gt_graph.p",'rb'))
+        # gt_graph = pickle.load(open(f"spacenet/RGB_1.0_meter/AOI_2_Vegas_210__gt_graph.p",'rb'))
         # gt_graph = pickle.load(open(f"spacenet/RGB_1.0_meter/AOI_4_Shanghai_1061__gt_graph_dense_spacenet.p",'rb'))
+        gt_graph = pickle.load(open(f"spacenet/RGB_1.0_meter/AOI_2_Vegas_5__gt_graph.p",'rb'))
         
         coord_transform = lambda v : np.stack([v[:, 1], 400 - v[:, 0]], axis=1)
         # coord_transform = lambda v : v[:, ::-1]
@@ -258,7 +266,8 @@ def test_graph_label_generator():
     config.MAX_NEIGHBOR_QUERIES = 16
     gen = GraphLabelGenerator(config, gt_graph, coord_transform)
     patch = ((x0, y0), (x1, y1)) = ((64, 64), (64+config.PATCH_SIZE, 64+config.PATCH_SIZE))
-    test_num = 64
+    # test_num = 64
+    test_num = 4
     for i in range(test_num):
         rot_index = np.random.randint(0, 4)
         points, samples = gen.sample_patch(patch, rot_index=rot_index)

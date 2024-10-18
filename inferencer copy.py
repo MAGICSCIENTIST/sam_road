@@ -1,25 +1,12 @@
-import sys
-import os
-
-module_paths = [
-    os.path.abspath('./'),
-    os.path.abspath('./sam'),
-    os.path.abspath('./segment-anything-road')
-]
-for module_path in module_paths:
-    if module_path not in sys.path:
-        sys.path.append(module_path)
-
-
-
 import numpy as np
+import os
 import imageio
 import torch
 import cv2
 
 from utils import load_config, create_output_dir_and_save_config
 from dataset import cityscale_data_partition, read_rgb_img, get_patch_info_one_img
-from dataset import spacenet_data_partition, mtp_data_partition
+from dataset import spacenet_data_partition
 from model import SAMRoad
 import graph_extraction
 import graph_utils
@@ -32,7 +19,6 @@ from collections import defaultdict
 import time
 
 from argparse import ArgumentParser
-from matplotlib import pyplot as plt
 
 
 parser = ArgumentParser()
@@ -107,21 +93,7 @@ def infer_one_img(net, img, config):
         with torch.no_grad():
             batch_img_patches = batch_img_patches.to(args.device, non_blocking=False)
             # [B, H, W, 2]
-            if(config.DATASET == 'mtp_yzt_penglai'):
-                _, patch_img_features = net.infer_masks_and_img_features(batch_img_patches)
-                mask_scores = torch.zeros((batch_img_patches.shape[0], batch_img_patches.shape[1], batch_img_patches.shape[2], 2), dtype=torch.float32).to(args.device, non_blocking=False)
-                mask_scores[:, :, :, 0] = _[:,:,:,0]
-                mask_scores[:, :, :, 1] = torch.tensor(np.tile(img[:,:,0]/255, (batch_img_patches.shape[0], 1, 1)))
-                
-            else:
-                mask_scores, patch_img_features = net.infer_masks_and_img_features(batch_img_patches)
-            # plt.imshow(mask_scores[0, :, :, 0].cpu().numpy())
-            # plt.axis('off') 
-            # plt.show()
-            # plt.imshow(mask_scores[0, :, :, 1].cpu().numpy())
-            # plt.axis('off')
-            # plt.show()
-
+            mask_scores, patch_img_features = net.infer_masks_and_img_features(batch_img_patches)
             img_features.append(patch_img_features)
         # Aggregate masks
         for patch_index, patch_info in enumerate(batch_patch_info):
@@ -260,6 +232,7 @@ def infer_one_img(net, img, config):
     
 
     return pred_nodes, pred_edges, fused_keypoint_mask, fused_road_mask
+
     
 
 
@@ -288,21 +261,6 @@ if __name__ == "__main__":
         _, _, test_img_indices = spacenet_data_partition()
         rgb_pattern = './spacenet/RGB_1.0_meter/{}__rgb.png'
         gt_graph_pattern = './spacenet/RGB_1.0_meter/{}__gt_graph.p'
-    elif config.DATASET == 'mtp_yzt_penglai':
-        # dataFolder =  "E:\output\MTP\multitask_pretrain\\finetune\Semantic_Segmentation\yzt\\rvsa-l-upernet-512-mae-mtp-lyzt-g-dl2-origin-merge-penglai\\test\\6000\mask"
-        dataFolder = ".\mtp\penglai\\6000\mask"
-        dataFolder_raster = "D:\learn\MyWork\mylib\output\\temp\splitFile_256\splitFile_raster"
-        _, _, test_img_indices = mtp_data_partition(dataFolder)       
-        # _, _, test_raster_indices = mtp_data_partition(dataFolder_raster)
-        rgb_pattern = dataFolder + '\\{}'
-        rgb_pattern_raster = dataFolder_raster + '\\{}.tif'
-        gt_graph_pattern = './spacenet/RGB_1.0_meter/{}__gt_graph.p'
-    elif config.DATASET == 'mtp_yzt_penglai_raw':
-          # dataFolder =  "E:\output\MTP\multitask_pretrain\\finetune\Semantic_Segmentation\yzt\\rvsa-l-upernet-512-mae-mtp-lyzt-g-dl2-origin-merge-penglai\\test\\6000\mask"
-        dataFolder = "D:\learn\MyWork\mylib\output\\temp\splitFile_256\splitFile_raster"
-        _, _, test_img_indices = mtp_data_partition(dataFolder)       
-        rgb_pattern = dataFolder + '\\{}'
-        gt_graph_pattern = './spacenet/RGB_1.0_meter/{}__gt_graph.p'
     
     output_dir_prefix = './save/infer_'
     if args.output_dir:
@@ -311,41 +269,30 @@ if __name__ == "__main__":
         output_dir = create_output_dir_and_save_config(output_dir_prefix, config)
     
     total_inference_seconds = 0.0
-    
+
     for img_id in test_img_indices:
-        
         print(f'Processing {img_id}')
         # [H, W, C] RGB
         img = read_rgb_img(rgb_pattern.format(img_id))
         start_seconds = time.time()
         # coords in (r, c)
-
-        a =  infer_one_img(net, img, config)
-        if(len(a) >= 4):
-            pred_nodes, pred_edges, itsc_mask, road_mask = a
-        else:
-            continue
+        pred_nodes, pred_edges, itsc_mask, road_mask = infer_one_img(net, img, config)
         end_seconds = time.time()
         total_inference_seconds += (end_seconds - start_seconds)
 
-        # gt_graph_path = gt_graph_pattern.format(img_id)
-        # gt_graph = pickle.load(open(gt_graph_path, "rb"))
-        # gt_nodes, gt_edges = graph_utils.convert_from_sat2graph_format(gt_graph)
-        # if len(gt_nodes) == 0:
-        #     gt_nodes = np.zeros([0, 2], dtype=np.float32)
+        gt_graph_path = gt_graph_pattern.format(img_id)
+        gt_graph = pickle.load(open(gt_graph_path, "rb"))
+        gt_nodes, gt_edges = graph_utils.convert_from_sat2graph_format(gt_graph)
+        if len(gt_nodes) == 0:
+            gt_nodes = np.zeros([0, 2], dtype=np.float32)
 
-        # if config.DATASET == 'spacenet':
-        #     # convert ??? -> xy -> rc
-        #     gt_nodes = np.stack([gt_nodes[:, 1], 400 - gt_nodes[:, 0]], axis=1)
-        #     gt_nodes = gt_nodes[:, ::-1]
+        if config.DATASET == 'spacenet':
+            # convert ??? -> xy -> rc
+            gt_nodes = np.stack([gt_nodes[:, 1], 400 - gt_nodes[:, 0]], axis=1)
+            gt_nodes = gt_nodes[:, ::-1]
 
         # RGB already
-        if(config.DATASET == 'mtp_yzt_penglai'):
-            img_name = os.path.basename(img_id).split(".")[0]
-            img_raster = read_rgb_img(rgb_pattern_raster.format(img_name))
-            viz_img = np.copy(img_raster)
-        else:
-            viz_img = np.copy(img)
+        viz_img = np.copy(img)
         img_size = viz_img.shape[0]
 
         # visualizes fused masks
@@ -378,7 +325,6 @@ if __name__ == "__main__":
         viz_save_dir = os.path.join(output_dir, 'viz')
         if not os.path.exists(viz_save_dir):
             os.makedirs(viz_save_dir)
-       
         viz_img = triage.visualize_image_and_graph(viz_img, pred_nodes / img_size, pred_edges, viz_img.shape[0])
         cv2.imwrite(os.path.join(viz_save_dir, f'{img_id}.png'), viz_img)
 

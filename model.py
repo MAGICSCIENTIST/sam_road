@@ -9,6 +9,8 @@ import copy
 
 from functools import partial
 from torchmetrics.classification import BinaryJaccardIndex, F1Score, BinaryPrecisionRecallCurve
+import sys
+print(sys.path)
 
 import lightning.pytorch as pl
 from sam.segment_anything.modeling.image_encoder import ImageEncoderViT

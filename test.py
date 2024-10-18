@@ -1,3 +1,10 @@
+
+import os
+import sys
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+sys.path.append(os.path.abspath("sam"))
+print(sys.path)
+
 from argparse import ArgumentParser
 import numpy as np
 import torch
@@ -14,6 +21,7 @@ import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from lightning.pytorch.callbacks import LearningRateMonitor
+
 
 
 parser = ArgumentParser()

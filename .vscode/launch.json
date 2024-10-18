@@ -1,0 +1,82 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "finetune_rvsa-l-upernet-512-mae-mtp-loveda.py",
+            "type": "python",
+            "request": "launch",
+            "program": "train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config=config/toponet_vitb_256_spacenet.yaml",
+            ],
+        },
+        {
+            "name": "inferencer penglai",
+            "type": "python",
+            "request": "launch",
+            "program": "inferencer.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config=config/toponet_vitb_256_spacenet_penglai.yaml",
+                "--checkpoint=weights/spacenet_vitb_256_e10.ckpt",
+                "--output_dir=lyzt-g-dl2-origin-merge-penglai/spacenet_vitb_256_e10_change/",
+                "--device=cuda"
+            ],
+        },
+        {
+            "name": "inferencer penglai change params",
+            "type": "python",
+            "request": "launch",
+            "program": "inferencer.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config=config/toponet_vitb_256_spacenet_penglai_params.yaml",
+                "--checkpoint=weights/spacenet_vitb_256_e10.ckpt",
+                "--output_dir=lyzt-g-dl2-origin-merge-penglai/spacenet_vitb_256_e10_change_params/",
+                "--device=cuda"
+            ],
+        },
+        {
+            "name": "inferencer penglai raw",
+            "type": "python",
+            "request": "launch",
+            "program": "inferencer.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config=config/toponet_vitb_256_spacenet_penglai_raw.yaml",
+                "--checkpoint=weights/spacenet_vitb_256_e10.ckpt",
+                "--output_dir=lyzt-g-dl2-origin-merge-penglai/spacenet_vitb_256_e10_raw_change/",
+                "--device=cuda"
+            ],
+        },
+
+        {
+            "name": "test spacenet raw",
+            "type": "python",
+            "request": "launch",
+            "program": "test.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config=config/toponet_vitb_256_spacenet.yaml",
+                "--checkpoint=weights/spacenet_vitb_256_e10.ckpt"                
+            ],
+        },
+    ]
+}
